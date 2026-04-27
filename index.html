@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Binary Tree Traversal Visualizer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px 48px;
+      gap: 14px;
+    }
+
+    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; }
+    .subtitle { font-size: 0.8rem; color: #7d8590; }
+
+    .controls {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 7px 14px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #21262d;
+      color: #c9d1d9;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: background 0.12s, border-color 0.12s;
+      user-select: none;
+    }
+    .btn:hover { background: #30363d; border-color: #8b949e; }
+
+    .btn-traversal.active { background: #1f4168; border-color: #388bfd; color: #79c0ff; }
+
+    #btn-play { background: #1b4332; border-color: #238636; color: #3fb950; }
+    #btn-play:hover { background: #238636; }
+    #btn-play.paused { background: #7d2a2a; border-color: #da3633; color: #ff7b72; }
+    #btn-play.paused:hover { background: #da3633; }
+
+    .aux-row {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .speed-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: #7d8590;
+    }
+    .speed-row input[type="range"] { width: 90px; accent-color: #388bfd; cursor: pointer; }
+
+    .step-counter { font-size: 0.78rem; color: #484f58; }
+    .step-counter em { font-style: normal; color: #8b949e; }
+
+    .info-bar {
+      font-size: 0.83rem;
+      color: #7d8590;
+      text-align: center;
+      min-height: 1.3em;
+    }
+    .info-bar .hl  { color: #79c0ff; font-weight: 600; }
+    .info-bar .dim { color: #484f58; }
+
+    .svg-wrap {
+      width: 100%;
+      max-width: 960px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    svg { width: 100%; height: auto; display: block; }
+
+    .edge { stroke: #2d333b; stroke-width: 1.5; }
+
+    .node-g .nc {
+      fill: #21262d;
+      stroke: #484f58;
+      stroke-width: 1.5;
+      transition: fill 0.22s, stroke 0.22s, stroke-width 0.22s;
+    }
+    .node-g .nl {
+      font-size: 10px;
+      font-weight: 700;
+      fill: #8b949e;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+      transition: fill 0.22s;
+    }
+    .node-g.visited .nc { fill: #0f2a1f; stroke: #2ea043; }
+    .node-g.visited .nl { fill: #3fb950; }
+    .node-g.current .nc { fill: #3a1f00; stroke: #d29922; stroke-width: 2.5; }
+    .node-g.current .nl { fill: #e3b341; }
+
+    .seq-wrap { width: 100%; max-width: 960px; }
+    .seq-label {
+      font-size: 0.72rem;
+      color: #484f58;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+    .seq {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      min-height: 36px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 5px 6px;
+    }
+    .sq {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.66rem;
+      font-weight: 700;
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #484f58;
+      transition: background 0.22s, color 0.22s, border-color 0.22s, transform 0.18s;
+    }
+    .sq.visited { background: #0f2a1f; border-color: #2ea043; color: #3fb950; }
+    .sq.current { background: #3a1f00; border-color: #d29922; color: #e3b341; transform: scale(1.22); }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      font-size: 0.77rem;
+      color: #7d8590;
+    }
+    .li { display: flex; align-items: center; gap: 5px; }
+    .ld { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid; }
+    .ld.u { background: #21262d; border-color: #484f58; }
+    .ld.c { background: #3a1f00; border-color: #d29922; }
+    .ld.v { background: #0f2a1f; border-color: #2ea043; }
+  </style>
+</head>
+<body>
+
+<h1>Binary Tree Traversal Visualizer</h1>
+<p class="subtitle">Balanced BST &mdash; 5 levels &mdash; 31 nodes &mdash; values 1&ndash;31</p>
+
+<div class="controls">
+  <button class="btn btn-traversal" id="btn-inorder"    onclick="selectTraversal('inorder')">In-Order</button>
+  <button class="btn btn-traversal" id="btn-preorder"   onclick="selectTraversal('preorder')">Pre-Order</button>
+  <button class="btn btn-traversal" id="btn-postorder"  onclick="selectTraversal('postorder')">Post-Order</button>
+  <button class="btn btn-traversal" id="btn-levelorder" onclick="selectTraversal('levelorder')">Level-Order (BFS)</button>
+  <button class="btn" id="btn-play"  onclick="togglePlay()">&#9654; Play</button>
+  <button class="btn" id="btn-step"  onclick="stepForward()">Step &rarr;</button>
+  <button class="btn" id="btn-reset" onclick="resetTree()">&#8635; Reset</button>
+</div>
+
+<div class="aux-row">
+  <div class="speed-row">
+    <span>Slow</span>
+    <input type="range" id="speed" min="200" max="1800" value="900" step="100">
+    <span>Fast</span>
+  </div>
+  <div class="step-counter">Step <em id="cur-step">0</em> / <em id="tot-step">31</em></div>
+</div>
+
+<div class="info-bar" id="info-bar">
+  Select a traversal above, then click <strong>Play</strong> or <strong>Step</strong>.
+</div>
+
+<div class="svg-wrap">
+  <svg id="tree-svg" viewBox="0 0 960 385" xmlns="http://www.w3.org/2000/svg">
+    <g id="edges-g"></g>
+    <g id="nodes-g"></g>
+  </svg>
+</div>
+
+<div class="seq-wrap">
+  <div class="seq-label">Visit order</div>
+  <div class="seq" id="seq"></div>
+</div>
+
+<div class="legend">
+  <div class="li"><div class="ld u"></div>Unvisited</div>
+  <div class="li"><div class="ld c"></div>Current</div>
+  <div class="li"><div class="ld v"></div>Visited</div>
+</div>
+
+<script>
+// ── Build balanced BST (in-order traversal yields 1, 2, …, 31) ─────────────
+function buildBST(vals) {
+  if (!vals.length) return null;
+  const m = Math.floor(vals.length / 2);
+  return { val: vals[m], left: buildBST(vals.slice(0, m)), right: buildBST(vals.slice(m + 1)) };
+}
+const root = buildBST([...Array(31)].map((_, i) => i + 1));
+
+// ── Assign (x, y) positions ────────────────────────────────────────────────
+const W = 960, MX = 28, MY = 48, LH = 72, R = 17;
+
+function assignPos(node, d, lo, hi) {
+  if (!node) return;
+  node.x = (lo + hi) / 2;
+  node.y = MY + d * LH;
+  const mid = (lo + hi) / 2;
+  assignPos(node.left,  d + 1, lo,  mid);
+  assignPos(node.right, d + 1, mid, hi);
+}
+assignPos(root, 0, MX, W - MX);
+
+// ── Collect all nodes ──────────────────────────────────────────────────────
+function collect(node, arr = []) {
+  if (!node) return arr;
+  arr.push(node);
+  collect(node.left, arr);
+  collect(node.right, arr);
+  return arr;
+}
+const allNodes = collect(root);
+
+// ── Traversal algorithms ───────────────────────────────────────────────────
+function ino(n, r = [])  { if (!n) return r; ino(n.left, r); r.push(n); ino(n.right, r); return r; }
+function pre(n, r = [])  { if (!n) return r; r.push(n); pre(n.left, r); pre(n.right, r); return r; }
+function post(n, r = []) { if (!n) return r; post(n.left, r); post(n.right, r); r.push(n); return r; }
+function bfs(root) {
+  const r = [], q = [root];
+  while (q.length) { const n = q.shift(); r.push(n); if (n.left) q.push(n.left); if (n.right) q.push(n.right); }
+  return r;
+}
+
+const TRAVERSALS = { inorder: ino, preorder: pre, postorder: post, levelorder: bfs };
+
+const DESCRIPTIONS = {
+  inorder:    '<span class="hl">In-Order</span> &mdash; Left &rarr; Root &rarr; Right &mdash; <span class="dim">visits nodes in ascending sorted order (1, 2, 3 &hellip; 31)</span>',
+  preorder:   '<span class="hl">Pre-Order</span> &mdash; Root &rarr; Left &rarr; Right &mdash; <span class="dim">visits the root before its subtrees; useful for tree copying &amp; serialization</span>',
+  postorder:  '<span class="hl">Post-Order</span> &mdash; Left &rarr; Right &rarr; Root &mdash; <span class="dim">visits children before root; used when deleting or evaluating expression trees</span>',
+  levelorder: '<span class="hl">Level-Order (BFS)</span> &mdash; Level by Level &mdash; <span class="dim">visits top-to-bottom, left-to-right using a queue; finds shortest paths</span>',
+};
+
+// ── SVG rendering ──────────────────────────────────────────────────────────
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+(function renderTree() {
+  const eg = document.getElementById('edges-g');
+  const ng = document.getElementById('nodes-g');
+
+  function drawEdges(node) {
+    if (!node) return;
+    for (const child of [node.left, node.right]) {
+      if (!child) continue;
+      eg.appendChild(svgEl('line', { class: 'edge', x1: node.x, y1: node.y, x2: child.x, y2: child.y }));
+      drawEdges(child);
+    }
+  }
+  drawEdges(root);
+
+  allNodes.forEach(n => {
+    const g = svgEl('g', { class: 'node-g', id: `ng${n.val}`, transform: `translate(${n.x},${n.y})` });
+    g.appendChild(svgEl('circle', { class: 'nc', r: R }));
+    g.appendChild(svgEl('text', { class: 'nl' }, n.val));
+    ng.appendChild(g);
+  });
+})();
+
+// ── State ──────────────────────────────────────────────────────────────────
+const S = { type: null, order: [], step: -1, playing: false, timer: null };
+
+// ── Element helpers ────────────────────────────────────────────────────────
+function nodeEl(val) { return document.getElementById(`ng${val}`); }
+function seqEl(val)  { return document.getElementById(`sq${val}`); }
+
+function setNodeCls(val, cls) {
+  const e = nodeEl(val);
+  if (e) e.className.baseVal = 'node-g' + (cls ? ' ' + cls : '');
+}
+function setSeqCls(val, cls) {
+  const e = seqEl(val);
+  if (e) e.className = 'sq' + (cls ? ' ' + cls : '');
+}
+
+function stepDelay() { return 2000 - parseInt(document.getElementById('speed').value); }
+
+function updateCounter() {
+  document.getElementById('cur-step').textContent = Math.max(0, S.step + 1);
+  document.getElementById('tot-step').textContent = S.order.length || 31;
+}
+
+// ── Select traversal ───────────────────────────────────────────────────────
+function selectTraversal(type) {
+  stopPlay();
+  document.querySelectorAll('.btn-traversal').forEach(b => b.classList.remove('active'));
+  document.getElementById(`btn-${type}`).classList.add('active');
+
+  allNodes.forEach(n => setNodeCls(n.val, ''));
+
+  S.type  = type;
+  S.order = TRAVERSALS[type](root);
+  S.step  = -1;
+
+  document.getElementById('info-bar').innerHTML = DESCRIPTIONS[type];
+  renderSeq();
+  updateCounter();
+}
+
+// ── Sequence chips ─────────────────────────────────────────────────────────
+function renderSeq() {
+  const seq = document.getElementById('seq');
+  seq.innerHTML = '';
+  S.order.forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'sq';
+    d.id = `sq${n.val}`;
+    d.textContent = n.val;
+    seq.appendChild(d);
+  });
+}
+
+// ── Step forward ───────────────────────────────────────────────────────────
+function stepForward() {
+  if (!S.type || S.step >= S.order.length - 1) return;
+
+  if (S.step >= 0) {
+    const prev = S.order[S.step];
+    setNodeCls(prev.val, 'visited');
+    setSeqCls(prev.val, 'visited');
+  }
+
+  S.step++;
+  const curr = S.order[S.step];
+  setNodeCls(curr.val, 'current');
+  setSeqCls(curr.val, 'current');
+  seqEl(curr.val)?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  updateCounter();
+}
+
+// ── Auto-play ──────────────────────────────────────────────────────────────
+function autoStep() {
+  if (!S.playing) return;
+  if (S.step >= S.order.length - 1) {
+    // Mark last node visited when done
+    if (S.step >= 0) {
+      const last = S.order[S.step];
+      setNodeCls(last.val, 'visited');
+      setSeqCls(last.val, 'visited');
+      updateCounter();
+    }
+    stopPlay();
+    return;
+  }
+  stepForward();
+  S.timer = setTimeout(autoStep, stepDelay());
+}
+
+function togglePlay() {
+  if (!S.type) return;
+  S.playing ? stopPlay() : startPlay();
+}
+
+function startPlay() {
+  S.playing = true;
+  const b = document.getElementById('btn-play');
+  b.textContent = '⏸ Pause';
+  b.classList.add('paused');
+  autoStep();
+}
+
+function stopPlay() {
+  clearTimeout(S.timer);
+  S.playing = false;
+  const b = document.getElementById('btn-play');
+  b.textContent = '▶ Play';
+  b.classList.remove('paused');
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+function resetTree() {
+  stopPlay();
+  allNodes.forEach(n => setNodeCls(n.val, ''));
+  S.order.forEach(n => setSeqCls(n.val, ''));
+  S.step = -1;
+  updateCounter();
+}
+</script>
+</body>
+</html>
