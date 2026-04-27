@@ -2,7 +2,7 @@
 
 Interactive visualizer for common binary tree traversal algorithms.
 
-**Live demo:** https://ngubbins.github.io/BinaryTreeViewer
+**Live demo:** https://ngubbins.github.io/binary-tree-traversal-visualiser/
 
 ## Traversals
 
